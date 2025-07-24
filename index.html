@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>보험종별 정보 시각화</title>
+    <!-- Bootstrap CSS for basic styling -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      integrity="sha384-TogGLWc6qBu62+SwnYK4y3ssAIktOq2YJhB+JvWkGh3IVJwzBhn+h5UZ5HlF33MB"
+      crossorigin="anonymous"
+    />
+    <style>
+      body {
+        padding: 2rem;
+        background-color: #f7f7f7;
+        font-family: "Noto Sans KR", sans-serif;
+      }
+
+      h1 {
+        margin-bottom: 1.5rem;
+      }
+
+      #chart-container {
+        max-width: 600px;
+        margin: 0 auto 2rem auto;
+      }
+
+      table {
+        background-color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="text-center">보험종별 데이터 시각화</h1>
+      <p class="text-center">
+        아래 표와 차트는 API를 통해 가져온 보험종별 데이터를
+        시각화한 것입니다.
+      </p>
+      <div id="chart-container">
+        <canvas id="insuranceChart"></canvas>
+      </div>
+      <div class="table-responsive">
+        <table id="insurance-table" class="table table-striped">
+          <thead class="table-dark">
+            <tr>
+              <th scope="col">코드</th>
+              <th scope="col">약칭</th>
+              <th scope="col">설명</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+      // 데이터를 가져와 표와 차트를 생성하는 함수
+      async function fetchInsuranceData() {
+        const apiUrl =
+          "https://ygr3586.azurewebsites.net/Main/GetInsuranceTypes";
+        try {
+          const response = await fetch(apiUrl);
+          if (!response.ok) {
+            throw new Error(`API 호출 실패: ${response.status}`);
+          }
+          const data = await response.json();
+          return data;
+        } catch (err) {
+          console.error(err);
+          return [];
+        }
+      }
+
+      // 표를 채우는 함수
+      function populateTable(data) {
+        const tbody = document.querySelector(
+          "#insurance-table tbody"
+        );
+        tbody.innerHTML = "";
+        data.forEach((item) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${item["code보험종별"]}</td>
+            <td>${item["txt보험종별이름"]}</td>
+            <td>${item["txt보험종별설명"].replace(/\n/g, " ")}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      // 차트를 그리는 함수
+      function drawChart(data) {
+        const ctx = document.getElementById("insuranceChart").getContext("2d");
+        const labels = data.map((item) => item["code보험종별"]);
+        // 각 보험 코드별로 1개씩 데이터 값 (분포 시각화를 위한 임의 값)
+        const values = data.map(() => 1);
+        // 색상 팔레트 정의
+        const colors = [
+          "#3366CC",
+          "#DC3912",
+          "#FF9900",
+          "#109618",
+          "#990099",
+          "#3B3EAC",
+          "#0099C6",
+          "#DD4477",
+          "#66AA00",
+          "#B82E2E",
+          "#316395",
+          "#994499",
+          "#22AA99",
+          "#AAAA11",
+          "#6633CC",
+        ];
+        const chart = new Chart(ctx, {
+          type: "pie",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "보험종별 분포",
+                data: values,
+                backgroundColor: colors.slice(0, values.length),
+                borderColor: "#ffffff",
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                position: "bottom",
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    const idx = context.dataIndex;
+                    const item = data[idx];
+                    return `${item["code보험종별"]}: ${item["txt보험종별설명"]}`;
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      // 페이지 로드 시 데이터 가져오기
+      window.addEventListener("DOMContentLoaded", async () => {
+        const data = await fetchInsuranceData();
+        populateTable(data);
+        drawChart(data);
+      });
+    </script>
+  </body>
+</html>
